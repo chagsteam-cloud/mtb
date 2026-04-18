@@ -1,0 +1,165 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum UserRole {
+  SYSTEM_ADMIN
+  ACCOUNTING
+  LABORATORY
+  TEACHER
+}
+
+enum EquipmentStatus {
+  WORKING
+  MAINTENANCE
+  BROKEN
+  WRITTEN_OFF
+}
+
+enum OperationType {
+  STATUS_CHANGED
+  MOVED
+  CREATED
+  UPDATED
+  DELETED
+  MOVEMENT_REQUESTED
+  MOVEMENT_APPROVED
+  MOVEMENT_REJECTED
+}
+
+enum MovementRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+model User {
+  id                     String          @id @default(cuid())
+  login                  String          @unique
+  passwordHash           String
+  fullName               String
+  role                   UserRole
+  isActive               Boolean         @default(true)
+  createdAt              DateTime        @default(now())
+  updatedAt              DateTime        @updatedAt
+  responsibleEquipments  Equipment[]     @relation("ResponsiblePerson")
+  authoredOperations     OperationLog[]  @relation("OperationAuthor")
+  auditoriumAssignments  UserAuditoriumAssignment[]
+  movementRequests       MovementRequest[] @relation("MovementRequestRequester")
+  movementDecisions      MovementRequest[] @relation("MovementRequestDecider")
+}
+
+model EquipmentCategory {
+  id          String       @id @default(cuid())
+  name        String       @unique
+  description String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  equipment   Equipment[]
+}
+
+model Auditorium {
+  id          String       @id @default(cuid())
+  number      String       @unique
+  name        String?
+  building    String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  equipment   Equipment[]
+  movesFrom   OperationLog[] @relation("MoveFromAuditorium")
+  movesTo     OperationLog[] @relation("MoveToAuditorium")
+  assignedUsers UserAuditoriumAssignment[]
+  movementRequestsFrom MovementRequest[] @relation("MovementRequestFromAuditorium")
+  movementRequestsTo   MovementRequest[] @relation("MovementRequestToAuditorium")
+}
+
+model UserAuditoriumAssignment {
+  id           String     @id @default(cuid())
+  userId       String
+  auditoriumId String
+  createdAt    DateTime   @default(now())
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  auditorium Auditorium @relation(fields: [auditoriumId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, auditoriumId])
+  @@index([auditoriumId])
+}
+
+model Equipment {
+  id                    String           @id @default(cuid())
+  inventoryNumber       String           @unique
+  name                  String
+  status                EquipmentStatus  @default(WORKING)
+  cost                  Decimal
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+  categoryId            String
+  auditoriumId          String
+  responsiblePersonId   String
+  category              EquipmentCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  auditorium            Auditorium       @relation(fields: [auditoriumId], references: [id], onDelete: Restrict)
+  responsiblePerson     User             @relation("ResponsiblePerson", fields: [responsiblePersonId], references: [id], onDelete: Restrict)
+  operationLogs         OperationLog[]
+  movementRequests    MovementRequest[]
+
+  @@index([status])
+  @@index([auditoriumId])
+  @@index([categoryId])
+}
+
+model MovementRequest {
+  id               String                 @id @default(cuid())
+  equipmentId      String
+  requestedById    String
+  fromAuditoriumId String
+  toAuditoriumId   String
+  status           MovementRequestStatus  @default(PENDING)
+  comment          String?
+  decisionComment  String?
+  decidedById      String?
+  decidedAt        DateTime?
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+
+  equipment      Equipment  @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  requestedBy    User       @relation("MovementRequestRequester", fields: [requestedById], references: [id], onDelete: Restrict)
+  fromAuditorium Auditorium @relation("MovementRequestFromAuditorium", fields: [fromAuditoriumId], references: [id], onDelete: Restrict)
+  toAuditorium   Auditorium @relation("MovementRequestToAuditorium", fields: [toAuditoriumId], references: [id], onDelete: Restrict)
+  decidedBy      User?      @relation("MovementRequestDecider", fields: [decidedById], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([equipmentId])
+  @@index([requestedById])
+}
+
+model OperationLog {
+  id                 String           @id @default(cuid())
+  operationType      OperationType
+  occurredAt         DateTime         @default(now())
+  comment            String?
+  previousStatus     EquipmentStatus?
+  newStatus          EquipmentStatus?
+  fromAuditoriumId   String?
+  toAuditoriumId     String?
+  equipmentId        String
+  authorId           String
+  equipment          Equipment        @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  author             User             @relation("OperationAuthor", fields: [authorId], references: [id], onDelete: Restrict)
+  fromAuditorium     Auditorium?      @relation("MoveFromAuditorium", fields: [fromAuditoriumId], references: [id], onDelete: SetNull)
+  toAuditorium       Auditorium?      @relation("MoveToAuditorium", fields: [toAuditoriumId], references: [id], onDelete: SetNull)
+
+  @@index([equipmentId, occurredAt])
+  @@index([authorId, occurredAt])
+}
