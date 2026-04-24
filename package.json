@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "next dev --webpack",
     "build": "next build --webpack",
-    "start": "prisma migrate deploy && next start",
+    "start": "node scripts/start-with-db-url.mjs",
+    "start:core": "prisma migrate deploy && next start",
     "lint": "eslint",
     "postinstall": "prisma generate",
     "db:migrate": "prisma migrate dev",
