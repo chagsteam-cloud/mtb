@@ -7,8 +7,9 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 function createPrismaClient() {
-  const url = process.env.DATABASE_URL;
-  if (!url) throw new Error("DATABASE_URL is not set");
+  const url =
+    process.env.DATABASE_URL ??
+    "postgresql://postgres:postgres@localhost:5432/placeholder?schema=public";
   const pool = new Pool({ connectionString: url });
   const adapter = new PrismaPg(pool);
   return new PrismaClient({ adapter });
