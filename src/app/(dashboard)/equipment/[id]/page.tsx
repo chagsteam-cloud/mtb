@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { EquipmentQr } from "@/components/qr/equipment-qr";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -149,6 +150,19 @@ export default async function EquipmentDetailsPage({
                 Стоимость доступна только ролям бухгалтерии и администратора.
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        <Card className="md:col-span-2">
+          <CardHeader>
+            <CardTitle className="text-base">QR-код карточки</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
+            <EquipmentQr equipmentId={equipment.id} size={180} />
+            <p className="text-sm text-muted-foreground max-w-md">
+              QR ведёт на эту карточку. Распечатайте наклейку через массовый выбор в списке инвентаря
+              или откройте сканер в разделе «Инвентарь».
+            </p>
           </CardContent>
         </Card>
       </div>

@@ -44,6 +44,17 @@ enum MovementRequestStatus {
   CANCELLED
 }
 
+enum AuditSessionStatus {
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum AuditItemResult {
+  PENDING
+  FOUND
+  MISSING
+}
+
 model User {
   id                     String          @id @default(cuid())
   login                  String          @unique
@@ -58,6 +69,8 @@ model User {
   auditoriumAssignments  UserAuditoriumAssignment[]
   movementRequests       MovementRequest[] @relation("MovementRequestRequester")
   movementDecisions      MovementRequest[] @relation("MovementRequestDecider")
+  auditSessionsResponsible AuditSession[]  @relation("AuditResponsible")
+  auditSessionsCreated     AuditSession[]  @relation("AuditCreatedBy")
 }
 
 model EquipmentCategory {
@@ -82,6 +95,7 @@ model Auditorium {
   assignedUsers UserAuditoriumAssignment[]
   movementRequestsFrom MovementRequest[] @relation("MovementRequestFromAuditorium")
   movementRequestsTo   MovementRequest[] @relation("MovementRequestToAuditorium")
+  auditSessions        AuditSession[]
 }
 
 model UserAuditoriumAssignment {
@@ -113,6 +127,8 @@ model Equipment {
   responsiblePerson     User             @relation("ResponsiblePerson", fields: [responsiblePersonId], references: [id], onDelete: Restrict)
   operationLogs         OperationLog[]
   movementRequests    MovementRequest[]
+  auditSessionItems     AuditSessionItem[]
+  auditSurplusItems     AuditSessionSurplus[]
 
   @@index([status])
   @@index([auditoriumId])
@@ -162,4 +178,50 @@ model OperationLog {
 
   @@index([equipmentId, occurredAt])
   @@index([authorId, occurredAt])
+}
+
+model AuditSession {
+  id                  String             @id @default(cuid())
+  auditoriumId        String
+  responsibleUserId   String
+  createdById         String
+  status              AuditSessionStatus @default(IN_PROGRESS)
+  startedAt           DateTime           @default(now())
+  completedAt         DateTime?
+
+  auditorium          Auditorium         @relation(fields: [auditoriumId], references: [id], onDelete: Restrict)
+  responsibleUser     User               @relation("AuditResponsible", fields: [responsibleUserId], references: [id], onDelete: Restrict)
+  createdBy           User               @relation("AuditCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  items               AuditSessionItem[]
+  surplusItems        AuditSessionSurplus[]
+
+  @@index([status, startedAt])
+  @@index([auditoriumId])
+}
+
+model AuditSessionItem {
+  id           String         @id @default(cuid())
+  sessionId    String
+  equipmentId  String
+  result       AuditItemResult @default(PENDING)
+  foundAt      DateTime?
+
+  session      AuditSession   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  equipment    Equipment      @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, equipmentId])
+  @@index([sessionId, result])
+}
+
+model AuditSessionSurplus {
+  id          String       @id @default(cuid())
+  sessionId   String
+  equipmentId String
+  scannedAt   DateTime     @default(now())
+
+  session     AuditSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  equipment   Equipment    @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, equipmentId])
+  @@index([sessionId])
 }

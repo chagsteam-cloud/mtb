@@ -360,3 +360,59 @@ export async function deleteEquipmentRecord(args: {
     });
   });
 }
+
+export async function bulkChangeEquipmentStatus(args: {
+  actorUserId: string;
+  actorRole: UserRole;
+  assignedAuditoriumIds: string[];
+  equipmentIds: string[];
+  nextStatus: EquipmentStatus;
+  comment?: string;
+}) {
+  for (const equipmentId of args.equipmentIds) {
+    await changeEquipmentStatus({
+      actorUserId: args.actorUserId,
+      actorRole: args.actorRole,
+      assignedAuditoriumIds: args.assignedAuditoriumIds,
+      equipmentId,
+      nextStatus: args.nextStatus,
+      comment: args.comment ?? "Массовое изменение статуса",
+    });
+  }
+}
+
+export async function bulkCreateMovementRequests(args: {
+  actorUserId: string;
+  actorRole: UserRole;
+  assignedAuditoriumIds: string[];
+  equipmentIds: string[];
+  toAuditoriumId: string;
+  comment?: string;
+}) {
+  for (const equipmentId of args.equipmentIds) {
+    await createMovementRequest({
+      actorUserId: args.actorUserId,
+      actorRole: args.actorRole,
+      assignedAuditoriumIds: args.assignedAuditoriumIds,
+      equipmentId,
+      toAuditoriumId: args.toAuditoriumId,
+      comment: args.comment ?? "Массовый запрос на перемещение",
+    });
+  }
+}
+
+export async function bulkWriteOffEquipment(args: {
+  actorUserId: string;
+  actorRole: UserRole;
+  assignedAuditoriumIds: string[];
+  equipmentIds: string[];
+}) {
+  if (args.actorRole !== "SYSTEM_ADMIN") {
+    throw new AuthError("Списание доступно только системному администратору.");
+  }
+  await bulkChangeEquipmentStatus({
+    ...args,
+    nextStatus: "WRITTEN_OFF",
+    comment: "Массовое списание",
+  });
+}

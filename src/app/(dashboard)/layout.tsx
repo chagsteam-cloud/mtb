@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { ThemeToggle } from "@/components/app/theme-toggle";
 import { UserMenu } from "@/components/app/user-menu";
 import { buttonVariants } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -7,6 +8,7 @@ import { requireSession } from "@/lib/auth-server";
 import {
   canApproveMovementRequests,
   canManageUsers,
+  canParticipateInAudit,
   canSeeFinancials,
 } from "@/lib/authz";
 import type { UserRole } from "@/generated/prisma/enums";
@@ -17,6 +19,9 @@ function navForRole(role: UserRole) {
     { href: "/dashboard", label: "Панель" },
     { href: "/equipment", label: "Инвентарь" },
     { href: "/movement-requests", label: "Перемещения" },
+    ...(canParticipateInAudit(role)
+      ? [{ href: "/audit", label: "Инвентаризация" as const }]
+      : []),
   ];
 
   if (canSeeFinancials(role)) {
@@ -70,6 +75,7 @@ export default async function DashboardGroupLayout({
           </div>
 
           <div className="flex items-center justify-between gap-2 sm:justify-end">
+            <ThemeToggle />
             <nav className="flex flex-wrap items-center gap-2 lg:hidden">
               {nav.map((item) => (
                 <Link

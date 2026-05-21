@@ -23,3 +23,24 @@ export function canExportInventory(role: UserRole) {
 export function canApproveMovementRequests(role: UserRole) {
   return role === "SYSTEM_ADMIN" || role === "ACCOUNTING";
 }
+
+export function canImportData(role: UserRole) {
+  return role === "SYSTEM_ADMIN" || role === "ACCOUNTING";
+}
+
+export function canBulkWriteOff(role: UserRole) {
+  return role === "SYSTEM_ADMIN";
+}
+
+export function canManageAuditSessions(role: UserRole) {
+  return role === "SYSTEM_ADMIN" || role === "ACCOUNTING";
+}
+
+export function canParticipateInAudit(role: UserRole) {
+  return (
+    role === "SYSTEM_ADMIN" ||
+    role === "ACCOUNTING" ||
+    role === "LABORATORY" ||
+    role === "TEACHER"
+  );
+}
